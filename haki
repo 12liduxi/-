@@ -1,0 +1,39 @@
+-- 設置
+local AutoHakiEnabled = true -- 設定為 true 開啟功能
+local autoHakiTask = nil
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Auto Haki 循環函數
+local function startAutoHakiLoop()
+    if autoHakiTask then
+        task.cancel(autoHakiTask)
+        autoHakiTask = nil
+    end
+    
+    autoHakiTask = task.spawn(function()
+        while AutoHakiEnabled do
+            task.wait(0.2)
+            -- 檢查角色是否存活且身上沒有武裝色標誌 "HasBuso" 
+            if AutoHakiEnabled and LocalPlayer.Character and not LocalPlayer.Character:FindFirstChild("HasBuso") then
+                pcall(function()
+                    -- 觸發武裝色遠端事件 
+                    ReplicatedStorage.Remotes.CommF_:InvokeServer("Buso")
+                end)
+            end
+        end
+        autoHakiTask = nil
+    end)
+end
+
+-- 啟動
+startAutoHakiLoop()
+
+-- 角色重生自動重新掛載 
+LocalPlayer.CharacterAdded:Connect(function()
+    if AutoHakiEnabled then
+        task.wait(2)
+        startAutoHakiLoop()
+    end
+end)
