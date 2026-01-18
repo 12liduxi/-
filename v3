@@ -1,0 +1,30 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local autoV3Task = nil
+_G.AutoV3State = true
+
+local function callRaceV3Remote()
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    [cite_start]if not humanoid or humanoid.Health <= 0 then return end [cite: 29]
+
+    local Remotes = ReplicatedStorage:FindFirstChild("Remotes")
+    if not Remotes then return end
+    
+    local CommE = Remotes:FindFirstChild("CommE")
+    [cite_start]if not CommE or not CommE:IsA("RemoteEvent") then return end [cite: 29]
+    
+    pcall(function()
+        [cite_start]CommE:FireServer("ActivateAbility") [cite: 30]
+    end)
+end
+
+autoV3Task = task.spawn(function()
+    while _G.AutoV3State do
+        callRaceV3Remote()
+        [cite_start]task.wait(1) [cite: 31]
+    end
+end)
