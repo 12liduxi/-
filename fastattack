@@ -1,0 +1,46 @@
+local _ENV = (getgenv or getrenv or getfenv)()
+local Settings = {AutoClick = true, ClickDelay = 0}
+local FastAttack = {Distance = 25000, attackMobs = true, attackPlayers = true, IsRunning = true}
+
+local function GetRandomValidPart(target)
+    local allParts = target:GetDescendants()
+    local validParts = {}
+    for _, part in ipairs(allParts) do
+        if part:IsA("BasePart") and part.CanCollide then table.insert(validParts, part) end
+    end
+    return #validParts > 0 and validParts[math.random(1, #validParts)] or target:FindFirstChild("HumanoidRootPart")
+end
+
+local function Attack()
+    local Remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+    local Net = game:GetService("ReplicatedStorage").Modules:FindFirstChild("Net")
+    local RegisterAttack = Net and Net:FindFirstChild("RE/RegisterAttack")
+    local RegisterHit = Net and Net:FindFirstChild("RE/RegisterHit")
+    local Enemies = game:GetService("Workspace"):FindFirstChild("Enemies")
+
+    if not (RegisterAttack and RegisterHit) then return end
+
+    local OthersEnemies = {}
+    if FastAttack.attackMobs and Enemies then
+        for _, v in pairs(Enemies:GetChildren()) do
+            if v:FindFirstChildOfClass("Humanoid") and v:FindFirstChildOfClass("Humanoid").Health > 0 then
+                local p = GetRandomValidPart(v)
+                if p and game.Players.LocalPlayer:DistanceFromCharacter(p.Position) < FastAttack.Distance then
+                    table.insert(OthersEnemies, {v, p})
+                end
+            end
+        end
+    end
+
+    if #OthersEnemies > 0 then
+        RegisterAttack:FireServer(Settings.ClickDelay)
+        RegisterHit:FireServer(OthersEnemies[1][2], OthersEnemies)
+    end
+end
+
+task.spawn(function()
+    while true do
+        task.wait(Settings.ClickDelay)
+        if FastAttack.IsRunning then Attack() end
+    end
+end)
