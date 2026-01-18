@@ -1,0 +1,47 @@
+local Lighting = game:GetService("Lighting")
+local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+
+-- 核心優化函數
+local function CleanVision(obj)
+    if obj:IsA("BlurEffect") then
+        obj.Enabled = false
+        obj.Size = 0
+    elseif obj:IsA("ColorCorrectionEffect") then
+        obj.Enabled = false
+    elseif obj:IsA("DepthOfFieldEffect") then -- 有些版本是用景深來造成模糊
+        obj.Enabled = false
+    end
+end
+
+-- 每幀強力鎖定 (解決那一秒的閃爍問題)
+RunService.Heartbeat:Connect(function()
+    -- 1. 處理 Lighting
+    for _, effect in pairs(Lighting:GetChildren()) do
+        CleanVision(effect)
+    end
+    
+    -- 2. 處理 Camera (很多新腳本把特效放這)
+    for _, effect in pairs(Camera:GetChildren()) do
+        CleanVision(effect)
+    end
+    
+    -- 3. 處理可能存在的遮罩 (有的見聞色會放一個全螢幕的 GUI)
+    local localPlayer = game.Players.LocalPlayer
+    if localPlayer then
+        local pGui = localPlayer:FindFirstChild("PlayerGui")
+        if pGui then
+            -- 這裡尋找名字包含 Haki 或 Vision 的 GUI 效果
+            for _, gui in pairs(pGui:GetChildren()) do
+                if (gui.Name:find("Haki") or gui.Name:find("Observation")) and gui:IsA("ScreenGui") then
+                    gui.Enabled = false
+                end
+            end
+        end
+    end
+end)
+
+-- 強制關閉霧氣與陰影優化
+Lighting.FogEnd = 100000
+Lighting.GlobalShadows = false
+
