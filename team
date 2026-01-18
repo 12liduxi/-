@@ -1,0 +1,14 @@
+local player = game.Players.LocalPlayer
+local currentTeam = player.Team.Name
+
+if currentTeam == "Marines" then
+    
+    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("SetTeam", "Pirates")
+    task.wait(0.5) 
+    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("SetTeam", "Marines")
+elseif currentTeam == "Pirates" then
+    
+    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("SetTeam", "Marines")
+    task.wait(0.5)
+    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("SetTeam", "Pirates")
+end
