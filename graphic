@@ -1,0 +1,120 @@
+local GlobalEffectConfig = {
+    PartMaterial = "Plastic",
+    PartReflectance = 0,
+    DecalTextureTransparency = 0.5,
+    ReducedEmissionRate = 1,
+    ReducedParticleSize = 0.05,
+    IncreasedTransparency = 0,
+    ExplosionBlastPressure = 1,
+    ExplosionBlastRadius = 1,
+    FireSize = 1,
+    FireHeat = 1,
+    SmokeSize = 1.5,
+    SmokeOpacity = 0.8,
+    DisableShadows = true,
+    DisablePostFx = true,
+    GuiBlurIntensity = 0,
+    TextureQualityScale = 2
+}
+
+for _, descendant in pairs(game:GetDescendants()) do
+    if descendant:IsA("Part") or descendant:IsA("UnionOperation") 
+        or descendant:IsA("CornerWedgePart") or descendant:IsA("TrussPart") then
+        descendant.Material = GlobalEffectConfig.PartMaterial
+        descendant.Reflectance = GlobalEffectConfig.PartReflectance
+        descendant.CastShadow = not GlobalEffectConfig.DisableShadows
+    
+    elseif descendant:IsA("Decal") or descendant:IsA("Texture") then
+        descendant.Transparency = GlobalEffectConfig.DecalTextureTransparency
+        if descendant:IsA("Texture") then
+            descendant.StudsPerTileU = descendant.StudsPerTileU * GlobalEffectConfig.TextureQualityScale
+            descendant.StudsPerTileV = descendant.StudsPerTileV * GlobalEffectConfig.TextureQualityScale
+        end
+    
+    elseif descendant:IsA("ParticleEmitter") then
+        descendant.Enabled = true
+        descendant.Rate = GlobalEffectConfig.ReducedEmissionRate
+        descendant.Size = NumberSequence.new(GlobalEffectConfig.ReducedParticleSize)
+        descendant.Transparency = NumberSequence.new(GlobalEffectConfig.IncreasedTransparency)
+    
+    elseif descendant:IsA("Explosion") then
+        descendant.BlastPressure = GlobalEffectConfig.ExplosionBlastPressure
+        descendant.BlastRadius = GlobalEffectConfig.ExplosionBlastRadius
+        descendant.Enabled = false
+    
+    elseif descendant:IsA("Fire") then
+        descendant.Enabled = true
+        descendant.Size = GlobalEffectConfig.FireSize
+        descendant.Heat = GlobalEffectConfig.FireHeat
+    
+    elseif descendant:IsA("Smoke") then
+        descendant.Enabled = true
+        descendant.Size = GlobalEffectConfig.SmokeSize
+        descendant.Opacity = GlobalEffectConfig.SmokeOpacity
+    
+    elseif descendant:IsA("PostEffect") then
+        descendant.Enabled = false
+    
+    elseif descendant:IsA("ShadowPart") then
+        descendant.Enabled = false
+    
+    elseif descendant:IsA("BlurEffect") then
+        descendant.Size = GlobalEffectConfig.GuiBlurIntensity
+        descendant.Enabled = false
+    end
+end
+
+for _, descendant in pairs(game:GetDescendants()) do
+    if descendant:IsA("ColorCorrectionEffect") then
+        descendant.Brightness = 0
+        descendant.Contrast = 0
+        descendant.Saturation = 0
+        descendant.Enabled = false
+    elseif descendant:IsA("FadeEffect") then
+        descendant.Enabled = false
+    elseif descendant:IsA("LensFlareEffect") or descendant:IsA("SunRaysEffect") then
+        descendant.Enabled = false
+    elseif descendant:IsA("ScreenGui") and (descendant.Name:find("Flash") or descendant.Name:find("闪光")) then
+        descendant:Destroy()
+    elseif descendant:IsA("ImageLabel") and descendant.Size == UDim2.new(1, 0, 1, 0) then
+        if descendant.Transparency < 1 then
+            descendant.Transparency = 1
+            descendant.Visible = false
+        end
+    end
+end
+
+game.DescendantAdded:Connect(function(descendant)
+    if descendant:IsA("ColorCorrectionEffect") then
+        descendant.Brightness = 0
+        descendant.Enabled = false
+    elseif descendant:IsA("FadeEffect") or descendant:IsA("LensFlareEffect") then
+        descendant.Enabled = false
+    elseif descendant:IsA("ImageLabel") and descendant.Size == UDim2.new(1, 0, 1, 0) then
+        descendant.Transparency = 1
+        descendant.Visible = false
+    end
+end)
+
+game:GetService("RunService").Heartbeat:Connect(function(deltaTime)
+    if deltaTime > 0.01 then
+        return
+    end
+end)
+
+local function disableRedundantServices()
+    local redundantServices = {
+        "TelemetryService",
+        "AnalyticsService",
+        "SocialService"
+    }
+    for _, serviceName in pairs(redundantServices) do
+        local service = game:GetService(serviceName, false)
+        if service then
+            pcall(function()
+                service.Enabled = false
+            end)
+        end
+    end
+end
+disableRedundantServices()
