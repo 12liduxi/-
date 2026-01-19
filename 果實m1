@@ -1,0 +1,112 @@
+-- Flash Attack (核心精簡極速版 - 全域開關版)
+local FlashAttackModule = {}
+
+-- 初始化全域開關 
+_G.FlashAttackEnabled = _G.FlashAttackEnabled or false 
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local Player = Players.LocalPlayer
+local attackConnection = nil
+local fastAttackInstance = nil
+local lastScanTime = 0
+local cachedBladeHits = {}
+
+local Config = {
+    AttackDistance = 5000,           -- 攻擊距離 [cite: 1]
+    AttackMobs = true,               
+    AttackPlayers = true,            
+    AttackCooldown = 0.01,           -- 極速冷卻
+    ComboResetTime = 0.5,            -- [cite: 2]
+    MaxCombo = 3,                    -- [cite: 2]
+    OptimizedScanInterval = 0.01     -- [cite: 2]
+}
+
+local FastAttack = {}
+FastAttack.__index = FastAttack
+
+function FastAttack.new()
+    return setmetatable({
+        Debounce = 0,
+        ComboDebounce = 0,
+        M1Combo = 0,
+    }, FastAttack) -- [cite: 3]
+end
+
+function FastAttack:IsEntityAlive(entity)
+    local humanoid = entity and entity:FindFirstChild("Humanoid")
+    return humanoid and humanoid.Health > 0 -- [cite: 4]
+end
+
+function FastAttack:GetBladeHits(Character)
+    if tick() - lastScanTime < Config.OptimizedScanInterval and #cachedBladeHits > 0 then
+        return cachedBladeHits -- [cite: 5]
+    end
+    
+    local Position = Character:GetPivot().Position
+    local BladeHits = {}
+    
+    local function ProcessTargets(Folder)
+        if not Folder then return end
+        for _, Enemy in ipairs(Folder:GetChildren()) do
+            if Enemy ~= Character and self:IsEntityAlive(Enemy) then
+                local BasePart = Enemy:FindFirstChild("HumanoidRootPart")
+                if BasePart and (Position - BasePart.Position).Magnitude <= Config.AttackDistance then
+                    table.insert(BladeHits, {Enemy, BasePart}) -- [cite: 7, 8]
+                end
+            end
+        end
+    end
+    
+    if Config.AttackMobs then ProcessTargets(Workspace.Enemies) end -- 
+    if Config.AttackPlayers then ProcessTargets(Workspace.Characters) end -- 
+    
+    lastScanTime = tick()
+    cachedBladeHits = BladeHits
+    return BladeHits -- 
+end
+
+function FastAttack:GetCombo()
+    local Combo = (tick() - self.ComboDebounce) <= Config.ComboResetTime and self.M1Combo or 0 --
+    Combo = Combo >= Config.MaxCombo and 1 or Combo + 1 --
+    self.ComboDebounce = tick()
+    self.M1Combo = Combo
+    return Combo --
+end
+
+function FastAttack:Attack()
+    -- 檢查全域開關狀態
+    if not _G.FlashAttackEnabled or (tick() - self.Debounce) < Config.AttackCooldown then return end 
+    
+    local Character = Player.Character
+    if not Character or not self:IsEntityAlive(Character) then return end --
+    
+    local Equipped = Character:FindFirstChildOfClass("Tool")
+    
+    -- 檢查是否裝備水果
+    if not Equipped or Equipped.ToolTip ~= "Blox Fruit" or not Equipped:FindFirstChild("LeftClickRemote") then return end 
+    
+    local Combo = self:GetCombo()
+    local Targets = self:GetBladeHits(Character) --
+    
+    if Targets[1] then
+        local Direction = (Targets[1][2].Position - Character:GetPivot().Position).Unit --
+        Equipped.LeftClickRemote:FireServer(Direction, Combo) --
+    end
+    
+    self.Debounce = tick() --
+end
+
+-- 啟動邏輯
+if not attackConnection then
+    fastAttackInstance = FastAttack.new() --
+    attackConnection = RunService.Heartbeat:Connect(function()
+        if fastAttackInstance then
+            fastAttackInstance:Attack() --
+        end
+    end)
+end
+
+print("Flash Attack 腳本已載入，請使用 _G.FlashAttackEnabled = true/false 來控制")
