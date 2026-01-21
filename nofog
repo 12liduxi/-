@@ -1,34 +1,27 @@
 local Lighting = game:GetService("Lighting")
 
--- 核心函數：針對不同類型的環境物件進行清理
 local function ClearFog(v)
     if v:IsA("Atmosphere") then
-        -- 處理現代大氣效果
         v.Density = 0
         v.Glare = 0
         v.Haze = 0
     elseif v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("ColorCorrectionEffect") then
-        -- 關閉模糊、發光、環境調色特效
         v.Enabled = false
     elseif v:IsA("Clouds") then
-        -- 移除雲朵
         v.Enabled = false
     end
 end
 
--- 1. 處理 Lighting 裡面的所有效果
 for _, v in pairs(Lighting:GetDescendants()) do
     ClearFog(v)
 end
 
--- 2. 處理 Workspace (有些地圖會把大氣效果放在這)
 for _, v in pairs(workspace:GetDescendants()) do
     if v:IsA("Atmosphere") then
         v.Density = 0
     end
 end
 
--- 3. 強制修改 Lighting 的基礎霧氣屬性
 Lighting.FogEnd = 9e9
 Lighting.FogStart = 0
-Lighting.Atmosphere = nil -- 移除全局大氣層控制，這能解決大部分「灰濛濛」的問題
+Lighting.Atmosphere = nil
