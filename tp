@@ -131,7 +131,6 @@ local function CreateUI()
     Title.TextSize = 14
     Title.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- --- 核心修改：確認關閉通知系統 ---
     local CloseBtn = Instance.new("TextButton", TitleBar)
     CloseBtn.Size = UDim2.new(0, 35, 0, 35)
     CloseBtn.Position = UDim2.new(1, -35, 0, 0)
@@ -160,7 +159,6 @@ local function CreateUI()
             Button2 = "取消"
         })
     end)
-    -- --- 核心修改結束 ---
 
     local FoldButton = Instance.new("TextButton", TitleBar)
     FoldButton.Size = UDim2.new(0, 35, 0, 35)
@@ -236,47 +234,6 @@ local function CreateUI()
     local TargetStatus = CreateInfoLabel("目標: 未選擇", 5, Color3.fromRGB(150, 150, 255))
     local DistStatus = CreateInfoLabel("距離: -", 45, Color3.fromRGB(150, 255, 150))
     
-    local RightSide = Instance.new("Frame", MainFrame)
-    RightSide.Size = UDim2.new(0.4, -15, 1, -50)
-    RightSide.Position = UDim2.new(0.6, 5, 0, 40)
-    RightSide.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-    Instance.new("UICorner", RightSide).CornerRadius = UDim.new(0, 8)
-
-    local SearchBox = Instance.new("TextBox", LeftSide)
-    SearchBox.Size = UDim2.new(1, 0, 0, 30)
-    SearchBox.PlaceholderText = " 搜尋玩家名稱..."
-    SearchBox.Text = ""
-    SearchBox.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-    SearchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    SearchBox.Font = Enum.Font.Gotham
-    SearchBox.TextSize = 13
-    Instance.new("UICorner", SearchBox).CornerRadius = UDim.new(0, 6)
-    
-    local ListScroll = Instance.new("ScrollingFrame", LeftSide)
-    ListScroll.Size = UDim2.new(1, 0, 1, -35)
-    ListScroll.Position = UDim2.new(0, 0, 0, 35)
-    ListScroll.BackgroundTransparency = 1
-    ListScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-    ListScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    ListScroll.ScrollBarThickness = 4
-    Instance.new("UIListLayout", ListScroll).Padding = UDim.new(0, 5)
-
-    local function CreateInfoLabel(text, yPos, color)
-        local lbl = Instance.new("TextLabel", RightSide)
-        lbl.Size = UDim2.new(1, -10, 0, 35)
-        lbl.Position = UDim2.new(0, 5, 0, yPos)
-        lbl.Text = text
-        lbl.TextColor3 = color or Color3.fromRGB(200, 200, 200)
-        lbl.BackgroundTransparency = 1
-        lbl.Font = Enum.Font.GothamSemibold
-        lbl.TextSize = 12
-        lbl.TextXAlignment = Enum.TextXAlignment.Left
-        return lbl
-    end
-    
-    local TargetStatus = CreateInfoLabel("目標: 未選擇", 5, Color3.fromRGB(150, 150, 255))
-    local DistStatus = CreateInfoLabel("距離: -", 40, Color3.fromRGB(150, 255, 150))
-    
     CreateInfoLabel("Teleport", 80, Color3.fromRGB(255, 100, 100))
     CreateToggle(RightSide, UDim2.new(1, -50, 0, 85), function(state)
         Config.TP_Enabled = state
@@ -289,7 +246,6 @@ local function CreateUI()
         UpdateTeleportLogic()
     end)
 
-    -- 新增：View Player 功能
     CreateInfoLabel("View Player", 150, Color3.fromRGB(255, 200, 100))
     CreateToggle(RightSide, UDim2.new(1, -50, 0, 155), function(state)
         local cam = workspace.CurrentCamera
@@ -370,15 +326,13 @@ end
 
 CreateUI()
 
--- 自動刷新玩家清單邏輯
 task.spawn(function()
     while task.wait(5) do
-        -- 檢查 UI 是否仍然存在，避免腳本關閉後繼續運行
         local screenGui = game:GetService("CoreGui"):FindFirstChild("Bypasstp_Ghost_V4")
         if screenGui then
             UpdateList()
         else
-            break -- UI 已關閉，停止循環
+            break 
         end
     end
 end)
