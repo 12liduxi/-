@@ -1,19 +1,18 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local autoV4Task = nil
-_G.AutoV4State = true -- 全局開關
+_G.AutoV4State = true 
 
 local function callAwakeningRemote()
     local character = LocalPlayer.Character
     if not character then return end
     
     local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid or humanoid.Health <= 0 then return end -- 死亡檢查 
+    if not humanoid or humanoid.Health <= 0 then return end 
 
     local Backpack = LocalPlayer:FindFirstChild("Backpack")
     if not Backpack then return end
     
-    -- 尋找 V4 覺醒工具 
     local Awakening = Backpack:FindFirstChild("Awakening")
     if not Awakening then return end
     
@@ -21,11 +20,10 @@ local function callAwakeningRemote()
     if not RemoteFunc or not RemoteFunc:IsA("RemoteFunction") then return end
     
     pcall(function()
-        RemoteFunc:InvokeServer(true) -- 呼叫覺醒伺服器 
+        RemoteFunc:InvokeServer(true) 
     end)
 end
 
--- 主循環 
 autoV4Task = task.spawn(function()
     while _G.AutoV4State do
         callAwakeningRemote()
