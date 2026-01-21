@@ -5,7 +5,6 @@ local down = Instance.new("TextButton")
 local onof = Instance.new("TextButton")
 local TextLabel = Instance.new("TextLabel")
 local plus = Instance.new("TextButton")
--- 將原本的 speed 變數替換為您提供的輸入框屬性
 local speed = Instance.new("TextBox") 
 local mine = Instance.new("TextButton")
 local closebutton = Instance.new("TextButton")
@@ -75,7 +74,6 @@ plus.TextScaled = true
 plus.TextSize = 14.000
 plus.TextWrapped = true
 
--- 套用您提供的新增屬性 (s 的屬性)
 speed.Name = "speed"
 speed.Parent = Frame
 speed.BackgroundColor3 = Color3.fromRGB(255, 85, 0)
@@ -131,8 +129,6 @@ mini2.TextSize = 40
 mini2.Position = UDim2.new(0, 44, -1, 57)
 mini2.Visible = false
 
---- 核心功能邏輯 ---
-
 local speeds = 1
 local speaker = game:GetService("Players").LocalPlayer
 local nowe = false
@@ -141,7 +137,6 @@ local tpwalking = false
 Frame.Active = true
 Frame.Draggable = true
 
--- 飛行速度處理函式
 local function updateSpeed()
 	if nowe == true then
 		tpwalking = false
@@ -162,7 +157,6 @@ local function updateSpeed()
 	end
 end
 
--- 文字輸入框邏輯 (新增)
 speed.FocusLost:Connect(function(enterPressed)
 	local val = tonumber(speed.Text)
 	if val then
@@ -226,7 +220,6 @@ onof.MouseButton1Down:connect(function()
 		speaker.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
 	end
 
-    -- 飛行控制 (R6 / R15)
 	local plr = game.Players.LocalPlayer
 	local torso = (plr.Character:FindFirstChild("Torso") or plr.Character:FindFirstChild("UpperTorso"))
 	if torso then
