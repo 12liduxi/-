@@ -1,0 +1,89 @@
+local espEnabled = false
+local espObjects = {}
+local RandomID = math.random(1, 1000000)
+
+local function Round(num)
+    return math.floor(tonumber(num) + 0.5)
+end
+
+local function getTeamColor(otherP)
+    return (otherP.Team ~= player.Team) and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(60, 160, 255)
+end
+
+local function removeESP(otherP)
+    if espObjects[otherP] then
+        for _, v in pairs(espObjects[otherP]) do
+            if typeof(v) == "Instance" then v:Destroy() end
+        end
+        espObjects[otherP] = nil
+    end
+end
+
+local function createESP(otherP)
+    if otherP == player or not otherP.Character then return end
+    removeESP(otherP)
+    
+    local char = otherP.Character
+    local head = char:WaitForChild("Head", 5)
+    if not head then return end
+
+    -- 資訊看板
+    local billboard = Instance.new("BillboardGui")
+    billboard.Adornee = head
+    billboard.Size = UDim2.new(0, 200, 0, 60)
+    billboard.AlwaysOnTop = true
+    billboard.StudsOffset = Vector3.new(0, 4, 0)
+    billboard.Parent = head
+
+    -- 頭像
+    local avatar = Instance.new("ImageLabel", billboard)
+    avatar.Size = UDim2.new(0, 40, 0, 40)
+    avatar.Position = UDim2.new(0, 0, 0, 0)
+    avatar.BackgroundTransparency = 1
+    avatar.Image = "https://www.roblox.com/headshot-thumbnail/image?userId="..otherP.UserId.."&width=150&height=150&format=png"
+
+    -- 文字
+    local text = Instance.new("TextLabel", billboard)
+    text.Size = UDim2.new(1, -45, 1, 0)
+    text.Position = UDim2.new(0, 45, 0, 0)
+    text.BackgroundTransparency = 1
+    text.RichText = true
+    text.TextSize = 12
+    text.Font = Enum.Font.GothamBold
+    text.TextColor3 = Color3.new(1, 1, 1)
+    text.TextXAlignment = Enum.TextXAlignment.Left
+
+    espObjects[otherP] = { highlight = highlight, billboard = billboard, text = text }
+
+    task.spawn(function()
+        while espEnabled and otherP and otherP.Parent and espObjects[otherP] do
+            if otherP.Character and otherP.Character:FindFirstChild("HumanoidRootPart") then
+                local root = otherP.Character.HumanoidRootPart
+                local lroot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if root and lroot then
+                    local dist = Round((root.Position - lroot.Position).Magnitude)
+                    local hum = otherP.Character:FindFirstChildOfClass("Humanoid")
+                    local hp = hum and Round(hum.Health) or 0
+                    
+                    text.Text = string.format(
+                        "%s\n<font color='rgb(200,200,200)'>@%s</font>\n<font color='rgb(255,182,193)'>%d M</font> | HP: %d",
+                        otherP.DisplayName, otherP.Name, dist, hp
+                    )
+                end
+            else break end
+            task.wait(0.2)
+        end
+    end)
+end
+
+local function toggleESP(state)
+    espEnabled = state
+    if state then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= player and p.Character then createESP(p) end
+        end
+    else
+        for p, _ in pairs(espObjects) do removeESP(p) end
+        espObjects = {}
+    end
+end
