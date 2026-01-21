@@ -336,3 +336,23 @@ task.spawn(function()
         end
     end
 end)
+-- 監聽玩家加入事件
+Players.PlayerAdded:Connect(function(player)
+    task.wait(1) -- 等待玩家數據加載完成
+    UpdateList()
+end)
+
+-- 監聽玩家退出事件
+Players.PlayerRemoving:Connect(function(player)
+    -- 如果離開的人剛好是你的目標，清空目標
+    if TargetPlayer == player then
+        TargetPlayer = nil
+        TargetStatus.Text = "目標: 未選擇"
+        DistStatus.Text = "距離: -"
+        UpdateTeleportLogic()
+    end
+    UpdateList()
+end)
+
+-- 初始執行一次
+UpdateList()
