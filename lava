@@ -1,21 +1,13 @@
-local function removeLava()
-    while true do
-        local map = game.Workspace:FindFirstChild("Map")
-        if map then
-            local ghostShipInterior = map:FindFirstChild("GhostShipInterior")
-            if ghostShipInterior then
-                local lavaParts = ghostShipInterior:FindFirstChild("LavaParts")
-                if lavaParts then
-                    local lava = lavaParts:FindFirstChild("Lava")
-                    if lava then
-                        lava:Destroy()
-                        
-                    end
-                end
-            end
-        end
-        task.wait(1)
+local function clean(object)
+    if object.Name == "LavaParts" then
+        object:Destroy()
     end
 end
 
-task.spawn(removeLava)
+for _, v in ipairs(game.Workspace:GetDescendants()) do
+    clean(v)
+end
+
+game.Workspace.DescendantAdded:Connect(function(descendant)
+    clean(descendant)
+end)
