@@ -1,0 +1,221 @@
+
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+
+local localPlayer = Players.LocalPlayer
+local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local humanoid = character:WaitForChild("Humanoid")
+
+local CONFIG = {
+    TargetTeleporterName = "ExitTeleporter",
+    CheckInterval = 1,
+    TweenTime = 0.8,
+    EasingStyle = Enum.EasingStyle.Quad,
+    EasingDirection = Enum.EasingDirection.Out,
+    DisableMovement = true,
+    DetectionRadius = 1000,
+    CooldownAfterTeleport = 3,
+    DelayBeforeCheck = 10, 
+    EnemyScanRadius = 5000 
+}
+
+local isTeleporting = false
+local isDetecting = true
+local lastTeleportTime = 0
+local lastTeleportedLevel = 0
+
+
+local clearedLevels = {}
+
+
+local function SetStabled(state)
+    local char = localPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    if state then
+        if not root:FindFirstChild("StableForce") then
+            local bv = Instance.new("BodyVelocity")
+            bv.Name = "StableForce"
+            bv.Velocity = Vector3.new(0, 0, 0)
+            bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+            bv.Parent = root
+        end
+    else
+        if root:FindFirstChild("StableForce") then
+            root.StableForce:Destroy()
+        end
+    end
+end
+
+
+local function updateCharacterReferences()
+    character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+    humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    humanoid = character:WaitForChild("Humanoid")
+    isTeleporting = false
+end
+
+
+local function getLevelCenter(levelFolder)
+    local total = Vector3.new(0,0,0)
+    local count = 0
+    for _, part in pairs(levelFolder:GetDescendants()) do
+        if part:IsA("BasePart") then
+            total += part.Position
+            count += 1
+        end
+    end
+    if count > 0 then
+        return total / count
+    end
+    return nil
+end
+
+
+local function moveToCenter(levelFolder)
+    local centerPos = getLevelCenter(levelFolder)
+    if centerPos then
+        local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Linear)
+        local goal = {CFrame = CFrame.new(centerPos + Vector3.new(0, 10, 0))}
+        local tween = TweenService:Create(humanoidRootPart, tweenInfo, goal)
+        tween:Play()
+        tween.Completed:Wait()
+    end
+end
+
+
+local function scanEnemies(myPos, radius)
+    local targets = {}
+    local enemiesFolder = workspace:FindFirstChild("Enemies")
+    if not enemiesFolder then return targets end
+
+    for _, v in ipairs(enemiesFolder:GetChildren()) do
+        local hrp = v:FindFirstChild("HumanoidRootPart")
+        local hum = v:FindFirstChild("Humanoid")
+        if hrp and hum and hum.Health > 0 then
+            local dist = (hrp.Position - myPos).Magnitude
+            if dist < (radius or CONFIG.EnemyScanRadius) then
+                table.insert(targets, {instance = v, hrp = hrp, humanoid = hum, distance = dist})
+            end
+        end
+    end
+
+    return targets
+end
+
+
+local function teleportToTarget(rootPart, level)
+    if isTeleporting then return end
+    local currentTime = tick()
+    if currentTime - lastTeleportTime < CONFIG.CooldownAfterTeleport then return end
+
+    isTeleporting = true
+    lastTeleportTime = currentTime
+    lastTeleportedLevel = level
+
+    if CONFIG.DisableMovement then
+        humanoid.WalkSpeed = 0
+        humanoid.JumpPower = 0
+    end
+
+    local tweenInfo = TweenInfo.new(CONFIG.TweenTime, CONFIG.EasingStyle, CONFIG.EasingDirection)
+    local teleportGoal = { CFrame = rootPart.CFrame }
+    local tween = TweenService:Create(humanoidRootPart, tweenInfo, teleportGoal)
+    tween:Play()
+
+    tween.Completed:Connect(function()
+        if CONFIG.DisableMovement then
+            humanoid.WalkSpeed = 16
+            humanoid.JumpPower = 50
+        end
+        isTeleporting = false
+    end)
+end
+
+
+local function goCenterThenExit(levelFolder, teleporterInfo)
+    if clearedLevels[teleporterInfo.level] then return end
+
+    
+    moveToCenter(levelFolder)
+
+    
+    SetStabled(true)
+
+    
+    task.wait(CONFIG.DelayBeforeCheck)
+
+    
+    while true do
+        local myPos = humanoidRootPart.Position
+        local targets = scanEnemies(myPos, CONFIG.EnemyScanRadius)
+
+        if #targets == 0 then
+            
+            SetStabled(false)
+            teleportToTarget(teleporterInfo.rootPart, teleporterInfo.level)
+            clearedLevels[teleporterInfo.level] = true
+            break
+        end
+
+        task.wait(1) 
+    end
+end
+
+
+local function getAllExitTeleporters()
+    local teleporters = {}
+    local map = Workspace:FindFirstChild("Map")
+    if not map then return teleporters end
+    local dungeonFolder = map:FindFirstChild("Dungeon")
+    if not dungeonFolder then return teleporters end
+
+    for _, levelFolder in pairs(dungeonFolder:GetChildren()) do
+        local levelNumber = tonumber(levelFolder.Name)
+        if levelNumber then
+            local teleporter = levelFolder:FindFirstChild(CONFIG.TargetTeleporterName)
+            if teleporter and teleporter:FindFirstChild("Root") then
+                table.insert(teleporters, {
+                    level = levelNumber,
+                    teleporter = teleporter,
+                    rootPart = teleporter.Root,
+                    position = teleporter.Root.Position,
+                    folder = levelFolder
+                })
+            end
+        end
+    end
+    table.sort(teleporters, function(a,b) return a.level < b.level end)
+    return teleporters
+end
+
+
+local function mainDetectionLoop()
+    while isDetecting do
+        task.wait(CONFIG.CheckInterval)
+        if not character or humanoid.Health <= 0 then
+            updateCharacterReferences()
+            continue
+        end
+        if isTeleporting then continue end
+
+        local allTeleporters = getAllExitTeleporters()
+        for _, teleporterInfo in ipairs(allTeleporters) do
+            local distance = (humanoidRootPart.Position - teleporterInfo.position).Magnitude
+            if distance < CONFIG.DetectionRadius then
+                local levelFolder = teleporterInfo.folder
+                if levelFolder then
+                    goCenterThenExit(levelFolder, teleporterInfo)
+                end
+                break
+            end
+        end
+    end
+end
+
+
+updateCharacterReferences()
+task.spawn(mainDetectionLoop)
